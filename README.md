@@ -130,7 +130,7 @@ streamlit run app_streamlit.py
 
 ## 🚀 Live Demo
 
-🌍 [Deployed Application Link]([https://your-streamlit-app-link-here](https://credit-card-fraud-detection-k73fpbcrfw9ddobigsqrmu.streamlit.app/))
+🌍 https://credit-card-fraud-detection-k73fpbcrfw9ddobigsqrmu.streamlit.app/
 
 ---
 
