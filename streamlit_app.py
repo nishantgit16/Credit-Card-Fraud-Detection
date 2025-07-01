@@ -8,7 +8,7 @@ model = joblib.load('fraud_detection_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
 # ---------------- UI Setup ----------------
-st.set_page_config(page_title="Fraud Detection System", layout="centered")
+st.set_page_config(page_title="Credit Card Fraud Detection System", layout="centered")
 
 st.markdown("""
     <style>
