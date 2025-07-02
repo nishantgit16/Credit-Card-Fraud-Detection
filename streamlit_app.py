@@ -17,7 +17,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🚨 Fraud Detection System")
+st.title("🚨 Credit Card Fraud Detection System")
 
 # ---------------- Real-Time Prediction ----------------
 st.header("🔎 Enter Transaction Details")
