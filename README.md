@@ -131,7 +131,7 @@ streamlit run app_streamlit.py
 
 ## 🚀 Live Demo
 
-Hosted Application: [Streamlit Cloud Link](https://credit-card-fraud-detection-k73fpbcrfw9ddobigsqrmu.streamlit.app/)
+Hosted Application: [Streamlit Cloud Link](https://credit-card-fraud-detection-by-nishant.streamlit.app/)
 
 ---
 
