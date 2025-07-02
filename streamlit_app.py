@@ -5,41 +5,36 @@ import pandas as pd
 import shap
 import matplotlib.pyplot as plt
 
-# Load trained model and scalers
+# ---------------- Load model and scalers ----------------
 model = joblib.load('fraud_detection_model.pkl')
 scaler_time = joblib.load('scaler_time.pkl')
 scaler_amount = joblib.load('scaler_amount.pkl')
 
-# Extract XGBoost model from ensemble
-xgb_model = model.named_estimators_['xgb']
+# ---------------- UI Setup ----------------
+st.set_page_config(page_title="Credit Card Fraud Detection System", layout="wide")
+st.title("🚨 Credit Card Fraud Detection System")
 
-st.set_page_config(page_title="Credit Card Fraud Detection", layout="wide")
+# ---------------- Tabs for Navigation ----------------
+tab1, tab2 = st.tabs(["🔍 Single Transaction Prediction", "📁 Batch Prediction"])
 
-# Sidebar Navigation
-st.sidebar.title("Navigation")
-option = st.sidebar.radio("Choose Option", ["Single Prediction", "Batch Prediction"])
+# ---------------- Single Transaction Prediction ----------------
+with tab1:
+    st.header("Enter Transaction Details")
 
-# ---------------- Single Prediction ----------------
-if option == "Single Prediction":
-    st.title("🔍 Single Transaction Fraud Check")
-
-    time = st.number_input("Transaction Time", value=0.0)
-    amount = st.number_input("Transaction Amount", value=0.0)
-
-    st.subheader("Other Features (28 Total)")
-    inputs = []
+    time = st.number_input("Time", value=0.0)
+    amount = st.number_input("Amount", value=0.0)
+    features = []
     for i in range(1, 29):
-        value = st.number_input(f'V{i}', value=0.0)
-        inputs.append(value)
+        val = st.number_input(f"V{i}", value=0.0)
+        features.append(val)
 
     if st.button("Predict Transaction"):
         scaled_time = scaler_time.transform(np.array([[time]]))[0][0]
         scaled_amount = scaler_amount.transform(np.array([[amount]]))[0][0]
 
-        data = [scaled_time, scaled_amount] + inputs
-        data_np = np.array([data])
+        data = np.array([[scaled_time, scaled_amount] + features])
 
-        prob = model.predict_proba(data_np)[0][1]
+        prob = model.predict_proba(data)[0][1]
         prediction = int(prob >= 0.6)
 
         st.write("---")
@@ -48,34 +43,34 @@ if option == "Single Prediction":
         else:
             st.success(f"✅ Transaction is Safe. Probability: {prob:.4f}")
 
+        # ----------------- SHAP Explanation -----------------
         st.subheader("Model Explanation (SHAP Values)")
-        explainer = shap.Explainer(xgb_model)
-        shap_values = explainer(data_np)
+        explainer = shap.Explainer(model.named_estimators_['xgb'])
+        shap_values = explainer(data)
 
-        # SHAP Barplot
-        st.write("**Global Feature Importance (Barplot)**")
-        fig_bar, ax = plt.subplots(figsize=(8, 5))
-        shap.plots.bar(shap_values, show=False)
-        st.pyplot(fig_bar)
-
-        # SHAP Waterfall
-        st.write("**Individual Prediction Explanation (Waterfall)**")
-        fig_water, ax = plt.subplots(figsize=(8, 5))
+        st.write("**Waterfall Plot (Individual Explanation):**")
+        fig_w = plt.figure()
         shap.plots.waterfall(shap_values[0], show=False)
-        st.pyplot(fig_water)
+        st.pyplot(fig_w)
+
+        st.write("**Bar Plot (Feature Importance):**")
+        fig_b = plt.figure()
+        shap.plots.bar(shap_values[0], show=False)
+        st.pyplot(fig_b)
 
 # ---------------- Batch Prediction ----------------
-elif option == "Batch Prediction":
-    st.title("📁 Batch Fraud Detection")
+with tab2:
+    st.header("📁 Batch Prediction from CSV")
 
-    uploaded_file = st.file_uploader("Upload CSV with Transactions", type=["csv"])
-
+    uploaded_file = st.file_uploader("Upload CSV (Original Kaggle Format)", type=["csv"])
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
-        st.write("**Original Uploaded Data:**")
+        st.write("**Uploaded Data Preview:**")
         st.dataframe(df.head())
 
-        if st.button("Predict Batch Transactions"):
+        if st.button("Run Batch Prediction"):
+            progress = st.progress(0)
+
             df['scaled_time'] = scaler_time.transform(df[['Time']])
             df['scaled_amount'] = scaler_amount.transform(df[['Amount']])
 
@@ -90,20 +85,25 @@ elif option == "Batch Prediction":
             df['Fraud Probability'] = probs
             df['Fraud Detected'] = predictions
 
-            st.success("✅ Prediction Completed:")
-            st.dataframe(df.head())
+            progress.progress(100)
+            st.success("Prediction Completed:")
 
-            # SHAP Barplot for batch
+            def color_rows(row):
+                color = 'background-color: #ff0000' if row['Fraud Detected'] == 1 else ''
+                return [color] * len(row)
+
+            st.dataframe(df.style.apply(color_rows, axis=1))
+
             st.subheader("📊 SHAP Global Feature Importance (Barplot)")
             background_size = min(100, X.shape[0])
             background = X[np.random.choice(X.shape[0], background_size, replace=False)]
 
-            explainer = shap.Explainer(xgb_model)
+            explainer = shap.Explainer(model.named_estimators_['xgb'])
             shap_values = explainer(background)
 
-            fig, ax = plt.subplots(figsize=(8, 5))
+            fig_shap, ax = plt.subplots()
             shap.summary_plot(shap_values, background, plot_type="bar", show=False)
-            st.pyplot(fig)
+            st.pyplot(fig_shap)
 
             csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button("Download Predictions CSV", csv, "predictions.csv", "text/csv")
+            st.download_button("Download Results CSV", csv, "predictions.csv", "text/csv")
